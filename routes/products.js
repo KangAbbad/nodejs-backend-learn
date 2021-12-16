@@ -5,7 +5,7 @@ const { Product } = require('../models/product');
 const { Category } = require('../models/category');
 // const { objectKeySorter } = require('../utils');
 
-router.get('/', async (req, res) => {
+router.get('/', (req, res) => {
   const { fields, productId, isFeatured } = req.query;
   const selectFields = fields ? fields.split(',').join(' ') : '';
   const find = {};
@@ -64,31 +64,45 @@ router.get('/get/count', (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const category = await Category.findById(req.body.category);
+  Category.findById(req.body.category)
+    .then(async () => {
+      const newProduct = new Product({
+        name: req.body.name,
+        description: req.body.description,
+        richDescription: req.body.richDescription,
+        image: req.body.image,
+        brand: req.body.brand,
+        price: req.body.price,
+        category: req.body.category,
+        countInStock: req.body.countInStock,
+        rating: req.body.rating,
+        numReviews: req.body.numReviews,
+        isFeatured: req.body.isFeatured,
+      });
 
-  console.log(category);
-
-  if (!category) return res.status(400).send('Invalid category!');
-
-  let product = new Product({
-    name: req.body.name,
-    description: req.body.description,
-    richDescription: req.body.richDescription,
-    image: req.body.image,
-    brand: req.body.brand,
-    price: req.body.price,
-    category: req.body.category,
-    countInStock: req.body.countInStock,
-    rating: req.body.rating,
-    numReviews: req.body.numReviews,
-    isFeatured: req.body.isFeatured,
-  });
-
-  product = await product.save();
-
-  if (!product) return res.status(500).send('Product cannot be created!');
-
-  res.status(201).send(product);
+      newProduct.save()
+        .then((product) => {
+          res.status(201).json({
+            data: product,
+            status: 201,
+            error: null,
+          });
+        })
+        .catch((error) => {
+          res.status(500).json({
+            data: null,
+            status: 500,
+            error: error,
+          });
+        });
+    })
+    .catch((error) => {
+      res.status(400).json({
+        data: null,
+        status: 400,
+        error,
+      });
+    });
 });
 
 router.put('/', async (req, res) => {
