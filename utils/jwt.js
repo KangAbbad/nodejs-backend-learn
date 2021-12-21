@@ -7,6 +7,7 @@ function authJwt () {
   return expressJwt({
     secret: process.env.JWT_SECRET,
     algorithms: ['HS256'],
+    isRevoked,
   }).unless({
     path: [
       {
@@ -18,8 +19,12 @@ function authJwt () {
         methods: ['GET', 'OPTIONS'],
       },
       {
+        url: `${apiUrl}/users/register`,
+        methods: ['POST'],
+      },
+      {
         url: `${apiUrl}/users/login`,
-        methods: [],
+        methods: ['POST'],
       },
     ],
   });
@@ -33,6 +38,14 @@ function jwtErrorHandler (error, req, res, next) {
       error,
     });
   }
+}
+
+function isRevoked (req, payload, done) {
+  if (!payload.isAdmin) {
+    done(null, true);
+  }
+
+  done();
 }
 
 module.exports = { authJwt, jwtErrorHandler };

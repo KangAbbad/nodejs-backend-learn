@@ -27,7 +27,7 @@ app.use(`${api}/products`, productsRouter);
 app.use(`${api}/categories`, categoriesRouter);
 app.use(`${api}/users`, usersRouter);
 
-// Server
+// MongoDB Server
 mongoose.connect(process.env.CONNECTION_STRING)
   .then(() => {
     console.log('Database connection is ready...');

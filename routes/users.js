@@ -29,7 +29,25 @@ router.get('/', (req, res) => {
     });
 });
 
-router.post('/', (req, res) => {
+router.get('/get/count', (req, res) => {
+  User.countDocuments()
+    .then((count) => {
+      res.status(200).json({
+        data: { count },
+        status: 200,
+        error: null,
+      });
+    })
+    .catch((error) => {
+      res.status(500).json({
+        data: 0,
+        status: 500,
+        error
+      });
+    })
+});
+
+router.post('/register', (req, res) => {
   const newUser = new User({
     name: req.body.name,
     email: req.body.email,
@@ -102,6 +120,48 @@ router.post('/login', (req, res) => {
         error,
       });
     });
+});
+
+router.put('/', (req, res) => {
+  if (!mongoose.isValidObjectId(req.query.userId)) {
+    res.status(400).send({
+      data: null,
+      status: 400,
+      error: 'Invalid user id!',
+    });
+  } else {
+    User
+      .findByIdAndUpdate(
+        req.query.userId,
+        {
+          name: req.body.name,
+          email: req.body.email,
+          // password: req.body.password ? bcrypt.hashSync(req.body.password, 8) : '',
+          phone: req.body.phone,
+          street: req.body.street,
+          apartment: req.body.apartment,
+          city: req.body.city,
+          country: req.body.country,
+          zip: req.body.zip,
+          isAdmin: req.body.isAdmin,
+        },
+        { new: true },
+      )
+      .then((user) => {
+        res.status(200).json({
+          data: user,
+          status: 200,
+          error: null,
+        });
+      })
+      .catch((error) => {
+        res.status(500).json({
+          data: null,
+          status: 500,
+          error,
+        });
+      });
+  }
 });
 
 router.delete('/', (req, res) => {
