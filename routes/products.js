@@ -1,9 +1,36 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
+const multer = require('multer');
 const { Product } = require('../models/product');
 const { Category } = require('../models/category');
 // const { objectKeySorter } = require('../utils');
+
+const FILE_TYPE_MAP = {
+  'image/png': 'png',
+  'image/jpeg': 'jpeg',
+  'image/jpg': 'jpg',
+};
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const isValid = FILE_TYPE_MAP[file.mimetype];
+    let uploadError = new Error('Invalid image type');
+
+    if (isValid) {
+      uploadError = null;
+    }
+
+    cb(uploadError, 'public/uploads');
+  },
+  filename: function (req, file, cb) {
+    const fileName = file.originalname.split(' ').join('-');
+    const extension = FILE_TYPE_MAP[file.mimetype];
+    cb(null, `${fileName}-${Date.now()}.${extension}`);
+  },
+});
+
+const uploadOptions = multer({ storage });
 
 router.get('/', (req, res) => {
   const { fields, productId, isFeatured } = req.query;
@@ -63,7 +90,7 @@ router.get('/get/count', (req, res) => {
     })
 });
 
-router.post('/', (req, res) => {
+router.post('/', uploadOptions.single('image'), (req, res) => {
   if (!mongoose.isValidObjectId(req.body.category)) {
     res.status(400).send({
       data: null,
@@ -73,11 +100,22 @@ router.post('/', (req, res) => {
   } else {
     Category.findById(req.body.category)
       .then(() => {
+        if (!req.file) {
+          res.status(400).json({
+            data: null,
+            status: 400,
+            error: 'Image is required!',
+          });
+        }
+
+        const baseUrl = `${req.protocol}://${req.get('host')}/public/uploads`;
+        const imageFileName = `${baseUrl}/${req.file.filename}`;
+
         const newProduct = new Product({
           name: req.body.name,
           description: req.body.description,
           richDescription: req.body.richDescription,
-          image: req.body.image,
+          image: imageFileName,
           brand: req.body.brand,
           price: req.body.price,
           category: req.body.category,
@@ -113,7 +151,7 @@ router.post('/', (req, res) => {
   }
 });
 
-router.put('/', (req, res) => {
+router.put('/', uploadOptions.single('image'), (req, res) => {
   if (!mongoose.isValidObjectId(req.query.productId)) {
     res.status(400).send({
       data: null,
@@ -121,48 +159,108 @@ router.put('/', (req, res) => {
       error: 'Invalid product id!',
     });
   } else {
-    Category.findById(req.body.category)
-      .then(() => {
-        Product
-          .findByIdAndUpdate(
-            req.query.productId,
-            {
-              name: req.body.name,
-              description: req.body.description,
-              richDescription: req.body.richDescription,
-              image: req.body.image,
-              brand: req.body.brand,
-              price: req.body.price,
-              category: req.body.category,
-              countInStock: req.body.countInStock,
-              rating: req.body.rating,
-              numReviews: req.body.numReviews,
-              isFeatured: req.body.isFeatured,
-            },
-            { new: true },
-          )
-          .then((product) => {
-            res.status(200).json({
-              data: product,
-              status: 200,
-              error: null,
-            });
+    Product
+      .findById(req.query.productId)
+      .then((product) => {
+        Category.findById(req.body.category)
+          .then(() => {
+            let imageFileName = product.image;
+
+            if (req.file) {
+              const baseUrl = `${req.protocol}://${req.get('host')}/public/uploads`;
+              imageFileName = `${baseUrl}/${req.file.filename}`;
+            }
+
+            Product
+              .findByIdAndUpdate(
+                req.query.productId,
+                {
+                  name: req.body.name,
+                  description: req.body.description,
+                  richDescription: req.body.richDescription,
+                  image: imageFileName,
+                  brand: req.body.brand,
+                  price: req.body.price,
+                  category: req.body.category,
+                  countInStock: req.body.countInStock,
+                  rating: req.body.rating,
+                  numReviews: req.body.numReviews,
+                  isFeatured: req.body.isFeatured,
+                },
+                { new: true },
+              )
+              .then((product) => {
+                res.status(200).json({
+                  data: product,
+                  status: 200,
+                  error: null,
+                });
+              })
+              .catch((error) => {
+                res.status(500).json({
+                  data: null,
+                  status: 500,
+                  error,
+                });
+              });
           })
           .catch((error) => {
-            res.status(500).json({
+            res.status(400).json({
               data: null,
-              status: 500,
+              status: 400,
               error,
             });
           });
       })
       .catch((error) => {
-        res.status(400).json({
+        res.status(404).json({
           data: null,
-          status: 400,
+          status: 404,
           error,
         });
+      });
+  }
+});
+
+router.put('/gallery', uploadOptions.array('images', 10), (req, res) => {
+  if (!mongoose.isValidObjectId(req.query.productId)) {
+    res.status(400).send({
+      data: null,
+      status: 400,
+      error: 'Invalid product id!',
+    });
+  } else {
+    let imagesFileName = [];
+
+    if (req.files) {
+      const baseUrl = `${req.protocol}://${req.get('host')}/public/uploads`;
+      req.files.forEach((file, fileIndex) => {
+        imagesFileName[fileIndex] = `${baseUrl}/${file.filename}`;
+      });
+    }
+
+    Product
+      .findByIdAndUpdate(
+        req.query.productId,
+        {
+          images: imagesFileName,
+        },
+        { new: true }
+      )
+      .then((product) => {
+        res.status(200).json({
+          data: product,
+          status: 200,
+          error: null,
+        });
       })
+      .catch((error) => {
+        res.status(500).json({
+          data: null,
+          status: 500,
+          error,
+        });
+      });;
   }
 });
 

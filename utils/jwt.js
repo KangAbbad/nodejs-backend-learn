@@ -30,6 +30,10 @@ function authJwt () {
         url: `${apiUrl}/orders`,
         methods: ['POST'],
       },
+      {
+        url: jwtUrlExeption('/public/uploads'),
+        methods: ['GET', 'OPTIONS'],
+      },
     ],
   });
 }
