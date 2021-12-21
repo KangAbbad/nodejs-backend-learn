@@ -26,6 +26,10 @@ function authJwt () {
         url: `${apiUrl}/users/login`,
         methods: ['POST'],
       },
+      {
+        url: `${apiUrl}/orders`,
+        methods: ['POST'],
+      },
     ],
   });
 }
