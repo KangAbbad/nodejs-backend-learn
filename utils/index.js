@@ -3,4 +3,8 @@ const objectKeySorter = (obj) => {
   return JSON.parse(reformat);
 };
 
-module.exports = { objectKeySorter };
+const jwtUrlExeption = (url) => {
+  return new RegExp(`${url}(.*)`,);
+};
+
+module.exports = { objectKeySorter, jwtUrlExeption };

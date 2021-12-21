@@ -40,7 +40,7 @@ router.get('/', (req, res) => {
       res.status(500).json({
         data: [],
         status: 500,
-        error
+        error,
       });
     });
 });
@@ -63,7 +63,7 @@ router.get('/get/count', (req, res) => {
     })
 });
 
-router.post('/', async (req, res) => {
+router.post('/', (req, res) => {
   if (!mongoose.isValidObjectId(req.body.category)) {
     res.status(400).send({
       data: null,
@@ -72,7 +72,7 @@ router.post('/', async (req, res) => {
     });
   } else {
     Category.findById(req.body.category)
-      .then(async () => {
+      .then(() => {
         const newProduct = new Product({
           name: req.body.name,
           description: req.body.description,
@@ -113,7 +113,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/', async (req, res) => {
+router.put('/', (req, res) => {
   if (!mongoose.isValidObjectId(req.query.productId)) {
     res.status(400).send({
       data: null,
